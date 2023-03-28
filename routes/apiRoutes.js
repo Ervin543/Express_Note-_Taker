@@ -1,28 +1,71 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db/db.json');
 const fs = require('fs');
+const path = require('path');
 
 // Get all notes
 router.get('/notes', (req, res) => {
-  return res.json(db);
+  const dbPath = path.join(__dirname, '../db/db.json');
+  fs.readFile(dbPath, 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Failed to read data from the file' });
+    }
+
+    const notes = JSON.parse(data);
+    return res.json(notes);
+  });
 });
 
 // Add a new note
 router.post('/notes', (req, res) => {
+  const dbPath = path.join(__dirname, '../db/db.json');
   const newNote = req.body;
   newNote.id = Date.now();
-  db.push(newNote);
-  fs.writeFileSync('./db/db.json', JSON.stringify(db));
-  return res.json(newNote);
+
+  fs.readFile(dbPath, 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Failed to read data from the file' });
+    }
+
+    const notes = JSON.parse(data);
+    notes.push(newNote);
+
+    fs.writeFile(dbPath, JSON.stringify(notes), (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Failed to write data to the file' });
+      }
+
+      return res.json(newNote);
+    });
+  });
 });
 
 // Delete a note by id
 router.delete('/notes/:id', (req, res) => {
+  const dbPath = path.join(__dirname, '../db/db.json');
   const id = parseInt(req.params.id);
-  const updatedDb = db.filter(note => note.id !== id);
-  fs.writeFileSync('./db/db.json', JSON.stringify(updatedDb));
-  return res.json(updatedDb);
+  
+  fs.readFile(dbPath, 'utf8', (err, data) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Failed to read data from the file' });
+    }
+
+    const notes = JSON.parse(data);
+    const updatedNotes = notes.filter(note => note.id !== id);
+
+    fs.writeFile(dbPath, JSON.stringify(updatedNotes), (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Failed to write data to the file' });
+      }
+
+      return res.json(updatedNotes);
+    });
+  });
 });
 
 module.exports = router;
